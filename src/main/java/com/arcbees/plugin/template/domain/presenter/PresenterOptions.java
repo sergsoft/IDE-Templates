@@ -16,9 +16,10 @@
 
 package com.arcbees.plugin.template.domain.presenter;
 
-public class PresenterOptions {
+import com.arcbees.plugin.template.domain.NamedOptions;
+
+public class PresenterOptions extends NamedOptions {
     private String tmpPath;
-    private String name;
     private String packageName;
     
     private boolean uihandlers;
@@ -35,14 +36,6 @@ public class PresenterOptions {
     public PresenterOptions() {
     }
     
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public String getPackageName() {
         return packageName;
     }

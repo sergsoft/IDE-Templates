@@ -16,110 +16,46 @@
 
 package com.arcbees.plugin.template.create.presenter;
 
-import java.io.StringWriter;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.apache.velocity.Template;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.exception.ParseErrorException;
-import org.apache.velocity.exception.ResourceNotFoundException;
-
 import com.arcbees.plugin.template.domain.presenter.CreatedPresenterWidget;
 import com.arcbees.plugin.template.domain.presenter.PresenterOptions;
 import com.arcbees.plugin.template.domain.presenter.PresenterWidgetOptions;
 import com.arcbees.plugin.template.domain.presenter.RenderedTemplate;
-import com.arcbees.plugin.template.utils.VelocityUtils;
+import org.apache.velocity.VelocityContext;
 
-public class CreatePresenterWidget {
-    public final static Logger logger = Logger.getLogger(CreatePresenterWidget.class.getName());
+public class CreatePresenterWidget extends CreatePresenter<PresenterWidgetOptions, CreatedPresenterWidget> {
 
     public static CreatedPresenterWidget run(PresenterOptions presenterOptions,
                     PresenterWidgetOptions presenterWidgetOptions, boolean remote) throws Exception {
         CreatePresenterWidget createdPresenterWidget = new CreatePresenterWidget(presenterOptions,
                         presenterWidgetOptions, remote);
         createdPresenterWidget.run();
-        return createdPresenterWidget.getCreatedPresenterWidget();
+        return createdPresenterWidget.getCreated();
     }
-
-    private static final String BASE_REMOTE = "https://raw.github.com/ArcBees/IDE-Templates/1.0.0/src/main/resources/com/arcbees/plugin/template/presenter/widget/";
-    private final static String BASE_LOCAL = "./src/main/resources/com/arcbees/plugin/template/presenter/widget/";
-
-    private final PresenterOptions presenterOptions;
-    private PresenterWidgetOptions presenterWidgetOptions;
-
-    private VelocityEngine velocityEngine;
-    private CreatedPresenterWidget createdPresenterWidget;
-    private boolean remote;
 
     private CreatePresenterWidget(PresenterOptions presenterOptions, PresenterWidgetOptions presenterWidgetOptions,
                     boolean remote) {
-        this.presenterOptions = presenterOptions;
-        this.presenterWidgetOptions = presenterWidgetOptions;
-        this.remote = remote;
+        super(presenterOptions, presenterWidgetOptions, CreatedPresenterWidget.class, remote);
     }
 
-    private void run() throws Exception {
-        createdPresenterWidget = new CreatedPresenterWidget();
-
-        if (remote) {
-            setupVelocityRemote();
-        } else {
-            setupVelocityLocal();
-        }
-
-        process();
+    @Override
+    protected String getLocalTemplatePath() {
+        return super.getLocalTemplatePath() + "widget/";
     }
 
-    private void setupVelocityLocal() {
-        velocityEngine = new VelocityEngine();
-        velocityEngine.setProperty(VelocityEngine.FILE_RESOURCE_LOADER_PATH, BASE_LOCAL);
-        try {
-            velocityEngine.init();
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Velocity Init Error Local", e);
-            e.printStackTrace();
-        }
+    @Override
+    protected String getRemoveTemplatePath() {
+        return super.getRemoveTemplatePath() + "widget/";
     }
 
-    private void setupVelocityRemote() throws Exception {
-        try {
-            velocityEngine = VelocityUtils.createRemoveVelocityEngine(BASE_REMOTE);
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Velocity Init Error", e);
-            e.printStackTrace();
-            throw e;
-        }
-    }
-
-    private CreatedPresenterWidget getCreatedPresenterWidget() {
-        return createdPresenterWidget;
-    }
-
-    private VelocityContext getBaseVelocityContext() {
-        VelocityContext context = new VelocityContext();
-
-        // base
-        context.put("package", presenterOptions.getPackageName());
-        context.put("name", presenterOptions.getName());
-
-        // extra options
-        context.put("uihandlers", presenterOptions.getUihandlers());
-        context.put("onbind", presenterOptions.getOnbind());
-        context.put("onhide", presenterOptions.getOnhide());
-        context.put("onreset", presenterOptions.getOnreset());
-        context.put("onunbind", presenterOptions.getOnunbind());
-        context.put("manualreveal", presenterOptions.getManualReveal());
-        context.put("preparefromrequest", presenterOptions.getPrepareFromRequest());
+    @Override
+    protected void doSetupVelocityContext(VelocityContext context) {
+        super.doSetupVelocityContext(context);
 
         // presenter widget options
-        context.put("singleton", presenterWidgetOptions.getSingleton());
-
-        return context;
+        context.put("singleton", getExtraOption().getSingleton());
     }
 
-    private void process() throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void process() throws Exception {
         processModule();
         processPresenter();
         processUiHandlers();
@@ -127,49 +63,39 @@ public class CreatePresenterWidget {
         processViewBinder();
     }
 
-    private void processModule() throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void processModule() throws Exception {
         String fileName = "__name__Module.java.vm";
         RenderedTemplate rendered = processTemplate(fileName);
-        createdPresenterWidget.setModule(rendered);
+        getCreated().setModule(rendered);
     }
 
-    private void processPresenter() throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void processPresenter() throws Exception {
         String fileName = "__name__Presenter.java.vm";
         RenderedTemplate rendered = processTemplate(fileName);
-        createdPresenterWidget.setPresenter(rendered);
+        getCreated().setPresenter(rendered);
     }
 
-    private void processUiHandlers() throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void processUiHandlers() throws Exception {
         String fileName = "__name__UiHandlers.java.vm";
         RenderedTemplate rendered = processTemplate(fileName);
-        createdPresenterWidget.setUihandlers(rendered);
+        getCreated().setUihandlers(rendered);
     }
 
-    private void processView() throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void processView() throws Exception {
         String fileName = "__name__View.java.vm";
         RenderedTemplate rendered = processTemplate(fileName);
-        createdPresenterWidget.setView(rendered);
+        getCreated().setView(rendered);
     }
 
-    private void processViewBinder() throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void processViewBinder() throws Exception {
         String fileName = "__name__View.ui.xml.vm";
         RenderedTemplate rendered = processTemplate(fileName);
-        createdPresenterWidget.setViewui(rendered);
+        getCreated().setViewui(rendered);
     }
 
-    private RenderedTemplate processTemplate(String fileName) throws ResourceNotFoundException, ParseErrorException,
-                    Exception {
-        Template template = velocityEngine.getTemplate(fileName);
-        VelocityContext context = getBaseVelocityContext();
-        StringWriter writer = new StringWriter();
-        template.merge(context, writer);
-        RenderedTemplate rendered = new RenderedTemplate(renderFileName(fileName), writer.toString());
-        return rendered;
+    @Override
+    protected void doRun() throws Exception {
+        process();
     }
 
-    private String renderFileName(String fileName) {
-        String name = presenterOptions.getName();
-        name = name.replace(".vm", "");
-        return fileName.replace("__name__", name);
-    }
 }

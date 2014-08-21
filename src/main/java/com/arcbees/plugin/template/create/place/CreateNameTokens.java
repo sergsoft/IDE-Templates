@@ -16,57 +16,36 @@
 
 package com.arcbees.plugin.template.create.place;
 
-import java.io.StringWriter;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.apache.velocity.Template;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.exception.ParseErrorException;
-import org.apache.velocity.exception.ResourceNotFoundException;
-
+import com.arcbees.plugin.template.BaseCreator;
 import com.arcbees.plugin.template.domain.place.CreatedNameTokens;
 import com.arcbees.plugin.template.domain.place.NameToken;
 import com.arcbees.plugin.template.domain.place.NameTokenOptions;
 import com.arcbees.plugin.template.domain.presenter.RenderedTemplate;
-import com.arcbees.plugin.template.utils.VelocityUtils;
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.exception.ParseErrorException;
+import org.apache.velocity.exception.ResourceNotFoundException;
 
-public class CreateNameTokens {
-    public final static Logger logger = Logger.getLogger(CreateNameTokens.class.getName());
+import java.io.StringWriter;
+import java.util.List;
+
+public class CreateNameTokens extends BaseCreator<NameTokenOptions, CreatedNameTokens> {
+
+    private boolean processFileOnly;
 
     public static CreatedNameTokens run(NameTokenOptions nameTokenOptions, boolean remote, boolean processFileOnly) throws Exception {
-        CreateNameTokens created = new CreateNameTokens(nameTokenOptions, remote);
-        created.run(processFileOnly);
-        return created.getCreatedNameTokens();
+        CreateNameTokens created = new CreateNameTokens(nameTokenOptions, remote, processFileOnly);
+        created.run();
+        return created.getCreated();
     }
 
-    private static final String BASE_REMOTE = "https://raw.github.com/ArcBees/IDE-Templates/1.0.0/src/main/resources/com/arcbees/plugin/template/place/";
-    private final static String BASE_LOCAL = "./src/main/resources/com/arcbees/plugin/template/place/";
-
-    private VelocityEngine velocityEngine;
-    private NameTokenOptions nameTokenOptions;
-    private CreatedNameTokens createdNameTokens;
-    private boolean remote;
-
-    private CreateNameTokens(NameTokenOptions nameTokenOptions, boolean remote) {
-        this.nameTokenOptions = nameTokenOptions;
-        this.remote = remote;
+    protected CreateNameTokens(NameTokenOptions nameTokenOptions, boolean remote, boolean processFileOnly) {
+        super(nameTokenOptions, CreatedNameTokens.class, remote);
+        this.processFileOnly = processFileOnly;
     }
 
-    private CreatedNameTokens getCreatedNameTokens() {
-        return createdNameTokens;
-    }
-
-    private void run(boolean processFileOnly) throws Exception {
-        createdNameTokens = new CreatedNameTokens();
-
-        if (remote) {
-            setupVelocityRemote();
-        } else {
-            setupVelocityLocal();
-        }
+    @Override
+    protected void doRun() throws Exception {
 
         if (processFileOnly) {
             processNameTokensFile();
@@ -76,46 +55,18 @@ public class CreateNameTokens {
         }
     }
 
-    private void setupVelocityLocal() {
-        velocityEngine = new VelocityEngine();
-        velocityEngine.setProperty(VelocityEngine.FILE_RESOURCE_LOADER_PATH, BASE_LOCAL);
-        try {
-            velocityEngine.init();
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Velocity Init Error Local", e);
-            e.printStackTrace();
-        }
-    }
-
-    private void setupVelocityRemote() throws Exception {
-    	try {
-            velocityEngine = VelocityUtils.createRemoveVelocityEngine(BASE_REMOTE);
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Velocity Init Error", e);
-            e.printStackTrace();
-            throw e;
-        }
-    }
-
-    private VelocityContext getBaseVelocityContext() {
-        VelocityContext context = new VelocityContext();
-        context.put("package", nameTokenOptions.getPackageName());
-        context.put("methodName", nameTokenOptions.getMethodName(0));
-        return context;
-    }
-
     private void processNameTokensFile() throws ResourceNotFoundException, ParseErrorException, Exception {
         String fileName = "NameTokens.java.vm";
-        Template template = velocityEngine.getTemplate(fileName);
+        Template template = getTemplate(fileName);
         VelocityContext context = getBaseVelocityContext();
         StringWriter writer = new StringWriter();
         template.merge(context, writer);
         RenderedTemplate rendered = new RenderedTemplate(renderFileName(fileName), writer.toString());
-        createdNameTokens.setNameTokensFile(rendered);
+        getCreated().setNameTokensFile(rendered);
     }
 
     private void processNameTokens() throws ResourceNotFoundException, ParseErrorException, Exception {
-        List<NameToken> tokens = nameTokenOptions.getNameTokens();
+        List<NameToken> tokens = getOption().getNameTokens();
         if (tokens == null) {
             return;
         }
@@ -129,8 +80,8 @@ public class CreateNameTokens {
         String field = processNameTokenFieldTemplate(token);
         String method = processNameTokenMethodTemplate(token);
 
-        createdNameTokens.addField(field);
-        createdNameTokens.addMethod(method);
+        getCreated().addField(field);
+        getCreated().addMethod(method);
     }
 
     private String processNameTokenFieldTemplate(NameToken token) throws ResourceNotFoundException, ParseErrorException, Exception {
@@ -146,7 +97,7 @@ public class CreateNameTokens {
     }
 
     private RenderedTemplate processTemplate(String fileName, NameToken token) throws ResourceNotFoundException, ParseErrorException, Exception {
-        Template template = velocityEngine.getTemplate(fileName);
+        Template template = getTemplate(fileName);
         VelocityContext context = getBaseVelocityContext();
         context.put("crawlable", token.getCrawlable());
         context.put("name", token.getToken());
@@ -157,8 +108,19 @@ public class CreateNameTokens {
         return rendered;
     }
 
-    private String renderFileName(String fileName) {
-        fileName = fileName.replace(".vm", "");
-        return fileName;
+    @Override
+    protected String getLocalTemplatePath() {
+        return "templates/place/";
+    }
+
+    @Override
+    protected String getRemoveTemplatePath() {
+        return "https://raw.github.com/ArcBees/IDE-Templates/1.0.0/src/main/resources/com/arcbees/plugin/template/place/";
+    }
+
+    @Override
+    protected void doSetupVelocityContext(VelocityContext context) {
+        context.put("package", getOption().getPackageName());
+        context.put("methodName", getOption().getMethodName(0));
     }
 }

@@ -16,116 +16,56 @@
 
 package com.arcbees.plugin.template.create.presenter;
 
-import java.io.StringWriter;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.apache.velocity.Template;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.exception.ParseErrorException;
-import org.apache.velocity.exception.ResourceNotFoundException;
-
 import com.arcbees.plugin.template.domain.presenter.CreatedNestedPresenter;
 import com.arcbees.plugin.template.domain.presenter.NestedPresenterOptions;
 import com.arcbees.plugin.template.domain.presenter.PresenterOptions;
 import com.arcbees.plugin.template.domain.presenter.RenderedTemplate;
-import com.arcbees.plugin.template.utils.VelocityUtils;
+import org.apache.velocity.VelocityContext;
 
-public class CreateNestedPresenter {
-    public final static Logger logger = Logger.getLogger(CreateNestedPresenter.class.getName());
-            
+public class CreateNestedPresenter extends CreatePresenter<NestedPresenterOptions, CreatedNestedPresenter> {
+
     public static CreatedNestedPresenter run(PresenterOptions presenterOptions,
             NestedPresenterOptions nestedPresenterOptions, boolean remote) throws Exception {
         CreateNestedPresenter createNestedPresenter = new CreateNestedPresenter(presenterOptions,
                 nestedPresenterOptions, remote);
         createNestedPresenter.run();
-        return createNestedPresenter.getCreatedNestedPresenter();
+        return createNestedPresenter.getCreated();
     }
-
-    private static final String BASE_REMOTE = "https://raw.github.com/ArcBees/IDE-Templates/1.0.0/src/main/resources/com/arcbees/plugin/template/presenter/nested/";
-    private final static String BASE_LOCAL = "./src/main/resources/com/arcbees/plugin/template/presenter/nested/";
-
-    private final PresenterOptions presenterOptions;
-    private final NestedPresenterOptions nestedPresenterOptions;
-
-    private VelocityEngine velocityEngine;
-    private CreatedNestedPresenter createdNestedPresenter;
-    private boolean remote;
 
     private CreateNestedPresenter(PresenterOptions presenterOptions, NestedPresenterOptions nestedPresenterOptions,
             boolean remote) {
-        this.presenterOptions = presenterOptions;
-        this.nestedPresenterOptions = nestedPresenterOptions;
-        this.remote = remote;
+        super(presenterOptions, nestedPresenterOptions, CreatedNestedPresenter.class, remote);
     }
 
-    private void run() throws Exception {
-        createdNestedPresenter = new CreatedNestedPresenter();
-
-        if (remote) {
-            setupVelocityRemote();
-        } else {
-            setupVelocityLocal();
-        }
-
+    @Override
+    protected void doRun() throws Exception {
         process();
     }
 
-    private void setupVelocityLocal() {
-        velocityEngine = new VelocityEngine();
-        velocityEngine.setProperty(VelocityEngine.FILE_RESOURCE_LOADER_PATH, BASE_LOCAL);
-        try {
-        	//velocityEngine.reset();
-            velocityEngine.init();
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Velocity Init Error Local", e);
-            e.printStackTrace();
-        }
+    @Override
+    protected String getLocalTemplatePath() {
+        return super.getLocalTemplatePath() + "nested/";
     }
 
-    private void setupVelocityRemote() throws Exception {
-    	try {
-            velocityEngine = VelocityUtils.createRemoveVelocityEngine(BASE_REMOTE);
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Velocity Init Error", e);
-            e.printStackTrace();
-            throw e;
-        }
+    @Override
+    protected String getRemoveTemplatePath() {
+        return super.getRemoveTemplatePath() + "nested/";
     }
 
-    private CreatedNestedPresenter getCreatedNestedPresenter() {
-        return createdNestedPresenter;
-    }
-
-    private VelocityContext getBaseVelocityContext() {
-        VelocityContext context = new VelocityContext();
-
-        // base
-        context.put("package", presenterOptions.getPackageName());
-        context.put("name", presenterOptions.getName());
-
-        // extra options
-        context.put("uihandlers", presenterOptions.getUihandlers());
-        context.put("onbind", presenterOptions.getOnbind());
-        context.put("onhide", presenterOptions.getOnhide());
-        context.put("onreset", presenterOptions.getOnreset());
-        context.put("onunbind", presenterOptions.getOnunbind());
-        context.put("manualreveal", presenterOptions.getManualReveal());
-        context.put("preparefromrequest", presenterOptions.getPrepareFromRequest());
+    @Override
+    protected void doSetupVelocityContext(VelocityContext context) {
+        super.doSetupVelocityContext(context);
 
         // nested presenter options
-        context.put("revealType", nestedPresenterOptions.getRevealType());
-        context.put("codesplit", nestedPresenterOptions.getCodeSplit());
-        context.put("isplace", nestedPresenterOptions.getIsPlace());
-        context.put("contentSlotImport", nestedPresenterOptions.getContentSlotImport());
-        context.put("nameTokenImport", nestedPresenterOptions.getNameTokenImport());
-        context.put("nametoken", nestedPresenterOptions.getNameToken());
-
-        return context;
+        context.put("revealType", getExtraOption().getRevealType());
+        context.put("codesplit", getExtraOption().getCodeSplit());
+        context.put("isplace", getExtraOption().getIsPlace());
+        context.put("contentSlotImport", getExtraOption().getContentSlotImport());
+        context.put("nameTokenImport", getExtraOption().getNameTokenImport());
+        context.put("nametoken", getExtraOption().getNameToken());
     }
 
-    private void process() throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void process() throws Exception {
         processModule();
         processPresenter();
         processUiHandlers();
@@ -133,48 +73,34 @@ public class CreateNestedPresenter {
         processViewBinder();
     }
 
-    private void processModule() throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void processModule() throws Exception {
         String fileName = "__name__Module.java.vm";
         RenderedTemplate rendered = processTemplate(fileName);
-        createdNestedPresenter.setModule(rendered);
+        getCreated().setModule(rendered);
     }
 
-    private void processPresenter() throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void processPresenter() throws Exception {
         String fileName = "__name__Presenter.java.vm";
         RenderedTemplate rendered = processTemplate(fileName);
-        createdNestedPresenter.setPresenter(rendered);
+        getCreated().setPresenter(rendered);
     }
 
-    private void processUiHandlers() throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void processUiHandlers() throws Exception {
         String fileName = "__name__UiHandlers.java.vm";
         RenderedTemplate rendered = processTemplate(fileName);
-        createdNestedPresenter.setUihandlers(rendered);
+        getCreated().setUihandlers(rendered);
     }
 
-    private void processView() throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void processView() throws Exception {
         String fileName = "__name__View.java.vm";
         RenderedTemplate rendered = processTemplate(fileName);
-        createdNestedPresenter.setView(rendered);
+        getCreated().setView(rendered);
     }
 
-    private void processViewBinder() throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void processViewBinder() throws Exception {
         String fileName = "__name__View.ui.xml.vm";
         RenderedTemplate rendered = processTemplate(fileName);
-        createdNestedPresenter.setViewui(rendered);
+        getCreated().setViewui(rendered);
     }
 
-    private RenderedTemplate processTemplate(String fileName) throws ResourceNotFoundException, ParseErrorException, Exception {
-        Template template = velocityEngine.getTemplate(fileName);
-        VelocityContext context = getBaseVelocityContext();
-        StringWriter writer = new StringWriter();
-        template.merge(context, writer);
-        RenderedTemplate rendered = new RenderedTemplate(renderFileName(fileName), writer.toString());
-        return rendered;
-    }
-
-    private String renderFileName(String fileName) {
-        String name = presenterOptions.getName();
-        name = name.replace(".vm", "");
-        return fileName.replace("__name__", name);
-    }
 }

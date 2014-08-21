@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Class-Path: commons-io-2.4.jar commons-collections-3.2.1.jar org.apach
+ e.commons.collections-3.2.1.jar
+
