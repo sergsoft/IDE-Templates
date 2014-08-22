@@ -1,0 +1,21 @@
+package ${packageClient};
+
+import com.gwtplatform.dispatch.rpc.shared.Result;
+
+/**
+ * It's a prototype for server answer for the request "${name}"
+ */
+public class ${name}Result implements Result {
+#foreach( $param in $resultParams )
+    private ${param.type} ${param.name};
+
+    public ${param.type} get${param.name}(){
+        return ${param.name};
+    }
+
+    public void set${param.name}(${param.type} value){
+        this.${param.name} = value;
+    }
+
+#end
+}

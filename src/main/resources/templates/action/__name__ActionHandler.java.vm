@@ -1,0 +1,33 @@
+package ${packageServer};
+
+import com.google.inject.Inject;
+import com.gwtplatform.dispatch.rpc.server.ExecutionContext;
+import com.gwtplatform.dispatch.rpc.server.actionhandler.ActionHandler;
+import com.gwtplatform.dispatch.shared.ActionException;
+import ${packageClient}.${name};
+import ${packageClient}.${name}Result;
+
+/**
+ * It's server side implementation of request "${name}"
+ */
+public class ${name}ActionHandler implements ActionHandler<${name}, ${name}Result> {
+
+    @Inject
+    public ${name}ActionHandler() {
+    }
+
+    @Override
+    public ${name}Result execute(${name} request, ExecutionContext executionContext) throws ActionException {
+        return null;
+    }
+
+    @Override
+    public Class<${name}> getActionType() {
+        return ${name}.class;
+    }
+
+    @Override
+    public void undo(${name} request, ${name}Result result, ExecutionContext executionContext) throws ActionException {
+
+    }
+}

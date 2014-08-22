@@ -1,0 +1,28 @@
+package ${packageClient};
+
+import com.gwtplatform.dispatch.rpc.shared.ActionImpl;
+
+/**
+ * It's just request for getting information from server
+ */
+public class ${name} extends ActionImpl<${name}Result}> {
+#foreach( $param in $actionParams )
+    private ${param.type} ${param.name};
+
+    public ${param.type} get${param.name}(){
+        return ${param.name};
+    }
+
+    public void set${param.name}(${param.type} value){
+        this.${param.name} = value;
+    }
+
+#end
+
+#if($withoutSecure)
+@Override
+    public boolean isSecured() {
+        return false;
+    }
+#end
+}
