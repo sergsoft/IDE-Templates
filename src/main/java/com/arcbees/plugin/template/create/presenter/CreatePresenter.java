@@ -1,13 +1,13 @@
 package com.arcbees.plugin.template.create.presenter;
 
-import com.arcbees.plugin.template.BaseCreator;
+import com.arcbees.plugin.template.NamedCreator;
 import com.arcbees.plugin.template.domain.presenter.PresenterOptions;
 import org.apache.velocity.VelocityContext;
 
 /**
  * Created by serg on 21.08.2014.
  */
-public abstract class CreatePresenter<TPresenterOption, TCreator> extends BaseCreator<PresenterOptions, TCreator> {
+public abstract class CreatePresenter<TPresenterOption, TCreator> extends NamedCreator<PresenterOptions, TCreator> {
 
     private TPresenterOption extraOption;
 
